@@ -1,35 +1,94 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import type { CSSProperties, FormEvent, ReactNode } from 'react'
+import { Navigate, NavLink, Outlet, Route, Routes, useNavigate } from 'react-router-dom'
 import './App.css'
 
-function App() {
-  const [status, setStatus] = useState('Conectando ao backend…')
-
-  useEffect(() => {
-    const controller = new AbortController()
-    fetch('/api/health', { signal: controller.signal })
-      .then((response) => {
-        if (!response.ok) throw new Error('Erro de conexão')
-        return response.json() as Promise<{ message: string }>
-      })
-      .then((data) => setStatus(data.message))
-      .catch(() => {
-        if (!controller.signal.aborted) setStatus('Backend indisponível. Inicie o projeto com npm run dev.')
-      })
-    return () => controller.abort()
-  }, [])
-
-  return (
-    <main>
-      <span className="label">PROJETO DADOS MEMBROS</span>
-      <h1>Seu projeto começa aqui.</h1>
-      <p>React + TypeScript no frontend e Node.js + Express no backend.</p>
-      <div className="status" role="status">{status}</div>
-      <section>
-        <h2>Membros</h2>
-        <p>A estrutura está pronta para desenvolver o cadastro e a consulta de membros.</p>
-      </section>
-    </main>
-  )
+type Membro = {
+  id: string; nome: string; email: string; telefone: string; foto?: string; sexo?: string
+  dataNascimento?: string; naturalidade?: string; endereco?: string; bairro?: string; cidade?: string; cep?: string
+  pai?: string; mae?: string; profissao?: string; estadoCivil?: string; dataCasamento?: string; conjuge?: string
+  filhos?: string; batizado?: boolean; dataBatismo?: string; igrejaBatismo?: string; pastorBatismo?: string
+  tipoAdmissao?: string; createdAt?: string; dataSaida?: string; status?: string
 }
 
-export default App
+const API_URL = import.meta.env.VITE_API_URL ?? '/api'
+const membrosIniciais: Membro[] = [
+  { id:'1', nome:'Mariana Costa', email:'mariana@email.com', telefone:'(11) 99988-7766', sexo:'Feminino', dataNascimento:'1991-05-12', endereco:'Rua das Flores, 120', bairro:'Centro', cidade:'São Paulo', profissao:'Professora', estadoCivil:'Casado', dataCasamento:'2012-04-20', conjuge:'Paulo Costa', filhos:'Lívia (9), Davi (6)', batizado:true, dataBatismo:'2018-09-16', igrejaBatismo:'Igreja Central', pastorBatismo:'Pr. Carlos', tipoAdmissao:'Aclamação', createdAt:'2026-09-20', status:'Ativo' },
+  { id:'2', nome:'Lucas Almeida', email:'lucas@email.com', telefone:'(21) 98877-6655', sexo:'Masculino', dataNascimento:'1987-10-03', endereco:'Av. Brasil, 82', bairro:'Jardim América', cidade:'Rio de Janeiro', profissao:'Analista', estadoCivil:'Solteiro', batizado:true, dataBatismo:'2015-02-22', igrejaBatismo:'Igreja Central', pastorBatismo:'Pr. Marcos', tipoAdmissao:'Batismo', createdAt:'2026-09-18', status:'Ativo' },
+  { id:'3', nome:'Ana Souza', email:'ana@email.com', telefone:'(31) 97766-5544', sexo:'Feminino', dataNascimento:'1998-01-28', endereco:'Rua Nova, 45', bairro:'Vila Nova', cidade:'Belo Horizonte', profissao:'Enfermeira', estadoCivil:'Casado', conjuge:'Daniel Souza', filhos:'Clara (2)', batizado:false, tipoAdmissao:'Congregação', createdAt:'2026-09-15', status:'Pendente' },
+  { id:'4', nome:'Rafael Lima', email:'rafael@email.com', telefone:'(41) 96655-4433', sexo:'Masculino', dataNascimento:'1979-08-19', endereco:'Rua da Paz, 310', bairro:'Boa Vista', cidade:'Curitiba', profissao:'Eletricista', estadoCivil:'Outro', conjuge:'Clara Lima', filhos:'Miguel (14)', batizado:true, dataBatismo:'2009-11-08', igrejaBatismo:'Igreja Esperança', pastorBatismo:'Pr. João', tipoAdmissao:'Transferência', createdAt:'2026-09-12', status:'Ativo' },
+]
+
+function token() { return sessionStorage.getItem('admin-token') }
+const percentual = (parte: number, total: number) => total ? Math.round((parte / total) * 100) : 0
+const data = (valor?: string) => valor ? new Date(`${valor}T12:00:00`).toLocaleDateString('pt-BR') : 'Não informado'
+
+function Login() {
+  const navigate = useNavigate()
+  const [email, setEmail] = useState('')
+  const [senha, setSenha] = useState('')
+  const [mostrar, setMostrar] = useState(false)
+  const [erro, setErro] = useState('')
+  const [carregando, setCarregando] = useState(false)
+
+  async function entrar(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (import.meta.env.DEV) { sessionStorage.setItem('admin-token', 'visualizacao-local'); navigate('/painel/resumo'); return }
+    setCarregando(true); setErro('')
+    try {
+      const response = await fetch(`${API_URL}/auth/login`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ email, senha }) })
+      if (!response.ok) throw new Error('E-mail ou senha incorretos.')
+      const resposta = await response.json() as { token?: string }
+      if (!resposta.token) throw new Error('O servidor não retornou uma sessão válida.')
+      sessionStorage.setItem('admin-token', resposta.token); navigate('/painel/resumo')
+    } catch (error) { setErro(error instanceof Error ? error.message : 'Não foi possível entrar.') }
+    finally { setCarregando(false) }
+  }
+
+  if (token()) return <Navigate to="/painel/resumo" replace />
+  return <main className="login-page"><header className="login-header"><a className="brand" href="/">Igreja App<span>.</span></a><div className="support"><span>Precisa de ajuda?</span><a href="mailto:suporte@igreja.com">Fale conosco</a></div></header><div className="dots" aria-hidden="true">●　●<br/>　●<br/>●　●<br/>　●</div><div className="left-art" aria-hidden="true"><div/><span>↗</span></div><div className="right-art" aria-hidden="true"><span className="head"/><span className="body"/><span className="laptop">⌁</span></div><section className="login-card"><div className="lock">⌂</div><p className="eyebrow">ÁREA RESTRITA</p><h1>Acesso administrativo</h1><p className="subtitle">Entre com a conta cadastrada para gerenciar os membros.</p><form onSubmit={entrar}><label htmlFor="email">E-mail</label><div className="field"><span>@</span><input id="email" type="email" value={email} onChange={(e)=>setEmail(e.target.value)} placeholder="seu@email.com" required={!import.meta.env.DEV}/></div><label htmlFor="senha">Senha</label><div className="field"><span>●</span><input id="senha" type={mostrar?'text':'password'} value={senha} onChange={(e)=>setSenha(e.target.value)} placeholder="Digite sua senha" required={!import.meta.env.DEV}/><button type="button" onClick={()=>setMostrar(!mostrar)}>{mostrar?'Ocultar':'Mostrar'}</button></div>{erro&&<p className="error">{erro}</p>}<div className="form-links"><span>Acesso exclusivo para administradores</span><a href="mailto:suporte@igreja.com">Esqueci minha senha</a></div><button className="primary" disabled={carregando}>{carregando?'Entrando...':'Entrar no painel →'}</button></form></section><footer>© 2026 Igreja App · Privacidade e segurança</footer></main>
+}
+
+function Layout() {
+  const navigate = useNavigate()
+  const hoje = new Date().toLocaleDateString('pt-BR', { day:'2-digit', month:'long', year:'numeric' })
+  const itens = [['⌂','Visão geral','resumo'],['♙','Membros','membros'],['▥','Estatísticas','estatisticas'],['♢','Batismos','batismos'],['◉','Relatórios','relatorios'],['⚙','Configurações','configuracoes']]
+  return <div className="dashboard"><aside><NavLink className="brand church-brand" to="/painel/resumo"><span className="brand-mark">✦</span><span className="brand-name">Igreja App</span></NavLink><nav>{itens.map(([icone,nome,rota])=><NavLink key={rota} to={`/painel/${rota}`}><i>{icone}</i><span>{nome}</span>{rota==='relatorios'&&<b>1</b>}</NavLink>)}</nav><div className="admin-profile"><div className="avatar">SC</div><strong>Secretaria</strong><small>Acesso administrativo</small></div><div className="sidebar-date">▣ <span>{hoje}</span></div><button className="logout" onClick={()=>{sessionStorage.removeItem('admin-token');navigate('/')}}>↪ <span>Sair</span></button></aside><main className="dashboard-content"><Outlet/></main></div>
+}
+
+function Cabecalho({ titulo, subtitulo, busca, setBusca, acao }: { titulo:string; subtitulo:string; busca?:string; setBusca?:(valor:string)=>void; acao?:ReactNode }) {
+  return <header className="dashboard-header"><div><h1>{titulo}</h1><p>{subtitulo}</p></div><div className="header-actions">{setBusca&&<label className="search top-search">⌕<input type="search" value={busca} onChange={(e)=>setBusca(e.target.value)} placeholder="Buscar por nome ou celular..."/></label>}{acao}</div></header>
+}
+
+function Resumo() {
+  const [busca,setBusca]=useState('')
+  const membros=membrosIniciais.filter(m=>`${m.nome} ${m.telefone}`.toLowerCase().includes(busca.toLowerCase()))
+  const ativos=membrosIniciais.filter(m=>m.status==='Ativo').length, batizados=membrosIniciais.filter(m=>m.batizado).length
+  const casados=percentual(membrosIniciais.filter(m=>m.estadoCivil==='Casado').length,membrosIniciais.length), solteiros=percentual(membrosIniciais.filter(m=>m.estadoCivil==='Solteiro').length,membrosIniciais.length)
+  return <><Cabecalho titulo="Dashboard" subtitulo="Bem-vindo(a) de volta, Pr. Carlos" busca={busca} setBusca={setBusca}/><div className="church-dashboard-grid"><section className="members-panel recent-members"><div className="panel-heading"><div><h2>Últimos cadastros</h2><p>Membros adicionados recentemente</p></div></div><TabelaResumo membros={membros}/></section><section className="status-panel civil-panel"><div className="panel-heading"><div><h2>Estado civil e família</h2><p>Distribuição dos membros</p></div></div>{[['Casados',casados],['Solteiros',solteiros],['Outros / Viúvos',100-casados-solteiros]].map(([nome,valor])=><div className="progress-item" key={nome}><div><span>{nome}</span><strong>{valor}%</strong></div><i><b style={{width:`${valor}%`}}/></i></div>)}</section><div className="metric-pair"><section className="metric-card"><div><span>Usuários ativos</span><strong>{ativos}</strong><small>+12 novos este mês</small></div><div className="mini-bars"><i/><i/><i/><i/></div></section><section className="metric-card"><div><span>Batizados</span><strong>{batizados}</strong><small>{membrosIniciais.length-batizados} ainda não batizado</small></div><div className="baptism-bars"><i/><i/></div></section></div><section className="baptism-card"><span>Membros batizados</span><div className="gauge" style={{'--value':`${percentual(batizados,membrosIniciais.length)}%`} as CSSProperties}><b>{percentual(batizados,membrosIniciais.length)}%</b></div><small>do total de membros</small></section><section className="chart-panel monthly-chart"><div><span>Novas entradas</span><strong>{membrosIniciais.length}</strong><small>↗ fluxo mensal</small></div><GraficoBarras/></section></div></>
+}
+
+function TabelaResumo({ membros }:{ membros:Membro[] }) {
+  return <div className="table-wrap"><table><thead><tr><th>Membro</th><th>Entrada</th><th>Batismo</th><th>Status</th></tr></thead><tbody>{membros.slice(0,5).map(m=><tr key={m.id}><td><div className="member"><b>{m.nome.split(' ').map(p=>p[0]).join('').slice(0,2)}</b><div><strong>{m.nome}</strong><span>{m.telefone}</span></div></div></td><td>{data(m.createdAt)}</td><td><span className={`badge ${m.batizado?'ativo':'pendente'}`}>{m.batizado?'Batizado':'Não batizado'}</span></td><td><span className={`badge ${m.status?.toLowerCase()}`}>{m.status}</span></td></tr>)}</tbody></table>{!membros.length&&<p className="state">Nenhum membro encontrado.</p>}</div>
+}
+
+function GraficoBarras(){return <div className="bar-chart"><label><i style={{height:'35%'}}/><em>Jan</em></label><label><i style={{height:'58%'}}/><em>Fev</em></label><label><i style={{height:'46%'}}/><em>Mar</em></label><label><i style={{height:'74%'}}/><em>Abr</em></label><label><i style={{height:'62%'}}/><em>Mai</em></label><label><i style={{height:'92%'}}/><em>Jun</em></label></div>}
+
+function Membros() {
+  const [membros,setMembros]=useState(membrosIniciais), [busca,setBusca]=useState(''), [status,setStatus]=useState('Todos'), [batismo,setBatismo]=useState('Todos'), [civil,setCivil]=useState('Todos'), [edicao,setEdicao]=useState<Partial<Membro>|null>(null), [cep,setCep]=useState({endereco:'',bairro:'',cidade:''})
+  const lista=membros.filter(m=>`${m.nome} ${m.telefone}`.toLowerCase().includes(busca.toLowerCase())&&(status==='Todos'||m.status===status)&&(batismo==='Todos'||(batismo==='Batizados')===Boolean(m.batizado))&&(civil==='Todos'||m.estadoCivil===civil))
+  async function buscarCep(valor:string){const numero=valor.replace(/\D/g,'');if(numero.length!==8)return;try{const r=await fetch(`https://viacep.com.br/ws/${numero}/json/`);const d=await r.json() as {logradouro?:string;bairro?:string;localidade?:string;erro?:boolean};if(!d.erro)setCep({endereco:d.logradouro??'',bairro:d.bairro??'',cidade:d.localidade??''})}catch{setCep({endereco:'',bairro:'',cidade:''})}}
+  function salvar(event:FormEvent<HTMLFormElement>){event.preventDefault();const f=new FormData(event.currentTarget);const membro:Membro={...edicao,id:edicao?.id||crypto.randomUUID(),nome:String(f.get('nome')),email:String(f.get('email')),telefone:String(f.get('telefone')),sexo:String(f.get('sexo')),dataNascimento:String(f.get('dataNascimento')),naturalidade:String(f.get('naturalidade')),cep:String(f.get('cep')),endereco:String(f.get('endereco')),bairro:String(f.get('bairro')),cidade:String(f.get('cidade')),pai:String(f.get('pai')),mae:String(f.get('mae')),profissao:String(f.get('profissao')),estadoCivil:String(f.get('estadoCivil')),dataCasamento:String(f.get('dataCasamento')),conjuge:String(f.get('conjuge')),filhos:String(f.get('filhos')),batizado:f.get('batizado')==='sim',dataBatismo:String(f.get('dataBatismo')),igrejaBatismo:String(f.get('igrejaBatismo')),pastorBatismo:String(f.get('pastorBatismo')),tipoAdmissao:String(f.get('tipoAdmissao')),createdAt:String(f.get('createdAt')),dataSaida:String(f.get('dataSaida')),status:String(f.get('status'))};setMembros(edicao?.id?membros.map(m=>m.id===edicao.id?membro:m):[membro,...membros]);setEdicao(null)}
+  return <><Cabecalho titulo="Membros" subtitulo="Cadastre, consulte e mantenha os dados da membresia" busca={busca} setBusca={setBusca} acao={<button className="action-button" onClick={()=>{setCep({endereco:'',bairro:'',cidade:''});setEdicao({})}}>+ Novo membro</button>}/><div className="filter-bar"><select value={status} onChange={e=>setStatus(e.target.value)}><option>Todos</option><option>Ativo</option><option>Pendente</option></select><select value={batismo} onChange={e=>setBatismo(e.target.value)}><option>Todos</option><option>Batizados</option><option>Não batizados</option></select><select value={civil} onChange={e=>setCivil(e.target.value)}><option>Todos</option><option>Casado</option><option>Solteiro</option><option>Outro</option></select><span>{lista.length} registro(s)</span></div><section className="members-panel full-list"><div className="table-wrap"><table><thead><tr><th>Membro</th><th>Idade</th><th>Cidade</th><th>Família</th><th>Batismo</th><th>Status</th><th>Ações</th></tr></thead><tbody>{lista.map(m=><tr key={m.id}><td><div className="member"><b>{m.nome.split(' ').map(p=>p[0]).join('').slice(0,2)}</b><div><strong>{m.nome}</strong><span>{m.telefone}</span></div></div></td><td>{m.dataNascimento?new Date().getFullYear()-new Date(m.dataNascimento).getFullYear():'—'}</td><td>{m.cidade||'—'}</td><td>{m.conjuge||'—'}</td><td><span className={`badge ${m.batizado?'ativo':'pendente'}`}>{m.batizado?'Batizado':'Pendente'}</span></td><td>{m.status}</td><td><div className="row-actions"><button onClick={()=>{setCep({endereco:m.endereco??'',bairro:m.bairro??'',cidade:m.cidade??''});setEdicao(m)}}>Editar</button><button className="danger" onClick={()=>setMembros(membros.filter(item=>item.id!==m.id))}>Excluir</button></div></td></tr>)}</tbody></table></div></section>{edicao&&<div className="modal-backdrop" onMouseDown={()=>setEdicao(null)}><section className="member-modal" onMouseDown={e=>e.stopPropagation()}><header><div><h2>{edicao.id?'Editar membro':'Novo membro'}</h2><p>Preencha os dados cadastrais e eclesiásticos.</p></div><button onClick={()=>setEdicao(null)}>×</button></header><form onSubmit={salvar}><fieldset><legend>Dados pessoais</legend><label>Foto<input name="foto" type="file" accept="image/*"/></label><label>Nome completo<input name="nome" defaultValue={edicao.nome} required/></label><label>Sexo<select name="sexo" defaultValue={edicao.sexo}><option value="">Selecione</option><option>Feminino</option><option>Masculino</option></select></label><label>Data de nascimento<input name="dataNascimento" type="date" defaultValue={edicao.dataNascimento}/></label><label>Local de nascimento<input name="naturalidade" defaultValue={edicao.naturalidade}/></label><label>Celular<input name="telefone" defaultValue={edicao.telefone} required/></label><label>E-mail<input name="email" type="email" defaultValue={edicao.email}/></label><label>Profissão<input name="profissao" defaultValue={edicao.profissao}/></label></fieldset><fieldset><legend>Endereço</legend><label>CEP<input name="cep" defaultValue={edicao.cep} onBlur={e=>buscarCep(e.target.value)}/></label><label className="wide">Endereço<input name="endereco" value={cep.endereco||edicao.endereco||''} onChange={e=>setCep({...cep,endereco:e.target.value})}/></label><label>Bairro<input name="bairro" value={cep.bairro||edicao.bairro||''} onChange={e=>setCep({...cep,bairro:e.target.value})}/></label><label>Cidade<input name="cidade" value={cep.cidade||edicao.cidade||''} onChange={e=>setCep({...cep,cidade:e.target.value})}/></label></fieldset><fieldset><legend>Família</legend><label>Nome do pai<input name="pai" defaultValue={edicao.pai}/></label><label>Nome da mãe<input name="mae" defaultValue={edicao.mae}/></label><label>Estado civil<select name="estadoCivil" defaultValue={edicao.estadoCivil}><option>Solteiro</option><option>Casado</option><option>Outro</option></select></label><label>Data do casamento<input name="dataCasamento" type="date" defaultValue={edicao.dataCasamento}/></label><label>Cônjuge<input name="conjuge" defaultValue={edicao.conjuge}/></label><label>Filhos e idades<input name="filhos" defaultValue={edicao.filhos} placeholder="Ex.: Ana (8), João (4)"/></label></fieldset><fieldset><legend>Dados eclesiásticos</legend><label>Batizado?<select name="batizado" defaultValue={edicao.batizado?'sim':'nao'}><option value="nao">Não</option><option value="sim">Sim</option></select></label><label>Data do batismo<input name="dataBatismo" type="date" defaultValue={edicao.dataBatismo}/></label><label>Igreja do batismo<input name="igrejaBatismo" defaultValue={edicao.igrejaBatismo}/></label><label>Pastor responsável<input name="pastorBatismo" defaultValue={edicao.pastorBatismo}/></label><label>Tipo de admissão<select name="tipoAdmissao" defaultValue={edicao.tipoAdmissao}><option>Batismo</option><option>Aclamação</option><option>Transferência</option><option>Congregação</option></select></label><label>Data de entrada<input name="createdAt" type="date" defaultValue={edicao.createdAt}/></label><label>Data de saída<input name="dataSaida" type="date" defaultValue={edicao.dataSaida}/></label><label>Status<select name="status" defaultValue={edicao.status||'Ativo'}><option>Ativo</option><option>Pendente</option><option>Inativo</option></select></label></fieldset><footer><button type="button" className="secondary-button" onClick={()=>setEdicao(null)}>Cancelar</button><button className="action-button">Salvar membro</button></footer></form></section></div>}</>
+}
+
+function Estatisticas(){return <><Cabecalho titulo="Estatísticas" subtitulo="Indicadores demográficos e gerenciais da igreja"/><div className="analytics-grid"><section className="analytics-card wide-card"><h2>Faixas etárias</h2><div className="horizontal-chart">{[['Crianças',18],['Jovens',34],['Adultos',72],['Idosos',26]].map(([n,v])=><div key={n}><span>{n}</span><i><b style={{width:`${v}%`}}/></i><strong>{v}</strong></div>)}</div></section><section className="analytics-card"><h2>Retenção de membros</h2><div className="big-donut"><strong>88%</strong><span>permanência anual</span></div></section><section className="analytics-card wide-card"><h2>Crescimento anual</h2><div className="year-chart">{[42,55,49,68,75,92].map((v,i)=><label key={i}><i style={{height:`${v}%`}}/><span>{2021+i}</span></label>)}</div></section><section className="analytics-card"><h2>Profissões e habilidades</h2>{[['Educação',30],['Saúde',24],['Tecnologia',18],['Serviços',16],['Outros',12]].map(([n,v])=><div className="skill-row" key={n}><span>{n}</span><strong>{v}%</strong></div>)}</section></div></>}
+
+function Batismos(){const batizados=membrosIniciais.filter(m=>m.batizado), candidatos=membrosIniciais.filter(m=>!m.batizado);return <><Cabecalho titulo="Batismos" subtitulo="Acompanhamento dos batizados e candidatos"/><div className="tab-panels"><section className="members-panel"><div className="panel-heading"><div><h2>Já batizados</h2><p>Histórico de batismos registrados</p></div></div><div className="table-wrap"><table><thead><tr><th>Membro</th><th>Data</th><th>Igreja</th><th>Pastor</th></tr></thead><tbody>{batizados.map(m=><tr key={m.id}><td>{m.nome}</td><td>{data(m.dataBatismo)}</td><td>{m.igrejaBatismo}</td><td>{m.pastorBatismo}</td></tr>)}</tbody></table></div></section><section className="members-panel"><div className="panel-heading"><div><h2>Candidatos ao batismo</h2><p>Pessoas aguardando acompanhamento</p></div></div><div className="candidate-list">{candidatos.map(m=><article key={m.id}><div className="member"><b>{m.nome.slice(0,2)}</b><div><strong>{m.nome}</strong><span>{m.telefone}</span></div></div><span className="badge pendente">Curso pendente</span></article>)}</div></section><section className="analytics-card baptism-history"><h2>Histórico anual</h2><div className="year-chart">{[28,36,31,45,52,61].map((v,i)=><label key={i}><i style={{height:`${v}%`}}/><span>{2021+i}</span></label>)}</div></section></div></>}
+
+function Relatorios(){const cards=[['Aniversariantes do mês','Dia, nome e telefone dos aniversariantes.','PDF'],['Lista de casais','Tempo de união e contatos dos casais.','Excel'],['Missionários e obreiros','Relação de funções e áreas de atuação.','PDF'],['Ficha cadastral individual','Dados completos para impressão.','PDF']];return <><Cabecalho titulo="Relatórios" subtitulo="Gere documentos rápidos para a secretaria"/><div className="report-grid">{cards.map(([titulo,texto,tipo])=><article key={titulo}><div className="report-icon">▤</div><h2>{titulo}</h2><p>{texto}</p><button className="action-button" onClick={()=>alert(`Exportação em ${tipo} será conectada ao backend.`)}>Exportar {tipo} ↓</button></article>)}</div></>}
+
+function Configuracoes(){return <><Cabecalho titulo="Configurações" subtitulo="Administração do sistema e dados da igreja"/><div className="settings-grid"><section className="settings-card"><h2>Dados da igreja</h2><form><label>Nome da igreja<input defaultValue="Igreja Central"/></label><label>CNPJ<input placeholder="00.000.000/0001-00"/></label><label>Endereço<input defaultValue="Rua Principal, 100 - Centro"/></label><label>Logotipo<input type="file" accept="image/*"/></label><button className="action-button" type="button">Salvar alterações</button></form></section><section className="settings-card"><h2>Administradores</h2><div className="admin-row"><div className="avatar">SC</div><div><strong>Secretaria</strong><span>Acesso administrativo</span></div><button>Editar</button></div><div className="admin-row"><div className="avatar">PC</div><div><strong>Pr. Carlos</strong><span>Acesso total</span></div><button>Editar</button></div><button className="secondary-button">+ Adicionar administrador</button></section><section className="settings-card"><h2>Backup e segurança</h2><p>O backup e a autenticação segura serão conectados ao backend.</p><button className="secondary-button">Solicitar backup</button><button className="secondary-button">Alterar senha</button></section></div></>}
+
+function Protegido(){return token()?<Layout/>:<Navigate to="/" replace/>}
+export default function App(){return <Routes><Route path="/" element={<Login/>}/><Route path="/painel" element={<Protegido/>}><Route index element={<Navigate to="resumo" replace/>}/><Route path="resumo" element={<Resumo/>}/><Route path="membros" element={<Membros/>}/><Route path="estatisticas" element={<Estatisticas/>}/><Route path="batismos" element={<Batismos/>}/><Route path="relatorios" element={<Relatorios/>}/><Route path="configuracoes" element={<Configuracoes/>}/></Route><Route path="*" element={<Navigate to="/" replace/>}/></Routes>}

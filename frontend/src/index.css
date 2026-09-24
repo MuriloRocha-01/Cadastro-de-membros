@@ -1,3 +1,5 @@
-:root { font-family: Inter, system-ui, sans-serif; color: #f2f6ff; background: #101b2c; font-synthesis: none; text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased; }
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+:root { font-family: Manrope, Arial, sans-serif; font-synthesis: none; text-rendering: optimizeLegibility; }
 * { box-sizing: border-box; }
-body { margin: 0; min-width: 320px; }
+body { margin: 0; min-width: 320px; min-height: 100vh; }
+button, input { font: inherit; }
