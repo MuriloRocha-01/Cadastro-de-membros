@@ -1,0 +1,29 @@
+export type Membro = {
+  id: string
+  nome: string
+  email: string
+  telefone: string
+  foto?: string
+  sexo?: string
+  dataNascimento?: string
+  naturalidade?: string
+  endereco?: string
+  bairro?: string
+  cidade?: string
+  cep?: string
+  pai?: string
+  mae?: string
+  profissao?: string
+  estadoCivil?: string
+  dataCasamento?: string
+  conjuge?: string
+  filhos?: string
+  batizado?: boolean
+  dataBatismo?: string
+  igrejaBatismo?: string
+  pastorBatismo?: string
+  tipoAdmissao?: string
+  createdAt?: string
+  dataSaida?: string
+  status?: string
+}

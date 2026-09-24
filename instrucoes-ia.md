@@ -82,3 +82,77 @@ Ao gerar código para este projeto, você deve seguir estes padrões:
 ## 🎯 5. comportamento esperado da ia
 1.  Sempre que eu pedir para criar uma nova funcionalidade (ex: "adicionar confirmação de leitura"), crie os arquivos correspondentes tanto no `backend/` quanto no `frontend/` respeitando as pastas descritas na Seção 2.
 2.  Forneça códigos limpos, comentados apenas onde houver alta complexidade, e priorize funções assíncronas (`async/await`).
+
+
+Este projeto adota o padrão de **Conventional Commits** (Commits Semânticos) para manter o histórico de alterações limpo, legível e automatizável.
+
+## Estrutura da Mensagem
+
+A mensagem de commit deve seguir a seguinte estrutura:
+
+```text
+<tipo>[escopo opcional]: <descrição curta no imperativo>
+
+[corpo opcional: descrição detalhada do motivo e o que mudou]
+
+[rodapé opcional: links para tarefas, issues ou breaking changes]
+```
+
+---
+
+## 1. Tipos de Commit (`<tipo>`)
+
+O tipo é obrigatório e define a natureza da alteração. Utilize letras minúsculas:
+
+*   **`feat`**: Introdução de uma nova funcionalidade (ex: nova rota de API, novo componente visual).
+*   **`fix`**: Correção de um bug ou comportamento inesperado.
+*   **`docs`**: Alterações exclusivas na documentação (ex: atualizar o README.md, comentários explicativos).
+*   **`style`**: Mudanças de formatação e estilo que não afetam a lógica (ex: espaçamento, ponto e vírgula, linting).
+*   **`refactor`**: Modificação de código que não corrige bug nem adiciona funcionalidade (ex: otimização de performance, melhoria de legibilidade).
+*   **`test`**: Adição ou modificação de testes automatizados (unitários, integração, etc.).
+*   **`chore`**: Atualizações de tarefas de build, ferramentas de desenvolvimento ou dependências de pacotes (ex: atualizar versão do node, configurar Webpack).
+*   **`perf`**: Mudança de código focada estritamente em melhorar a performance.
+*   **`ci`**: Alterações em arquivos de configuração de Integração Contínua e entrega (ex: GitHub Actions, GitLab CI).
+
+---
+
+## 2. Escopo (`[escopo opcional]`)
+
+O escopo serve para contextualizar qual parte do software foi afetada. Deve ser escrito entre parênteses.
+*   *Exemplos:* `feat(auth):`, `fix(api):`, `style(button):`
+
+---
+
+## 3. Regras para a Descrição (`<descrição>`)
+
+*   **Use o imperativo:** Escreva a mensagem como se estivesse dando um comando (ex: "Adiciona", "Corrige", "Remove", e nunca "Adicionado", "Corrigido", "Removendo").
+*   **Letra inicial minúscula:** Não comece a descrição com letra maiúscula.
+*   **Sem ponto final:** Não coloque ponto final (`.`) no término da frase da descrição curta.
+*   **Seja conciso:** O título (primeira linha) deve ter preferencialmente menos de 50 caracteres.
+
+---
+
+## Exemplos Práticos
+
+### Commit Simples
+```text
+feat(login): adiciona validação de email no formulário
+```
+
+### Commit com Corpo e Rodapé (Interligado com Issue)
+```text
+fix(payment): corrige erro de timeout no gateway de pagamento
+
+O timeout acontecia porque a API externa demorava mais de 5 segundos para
+responder em horários de pico. O limite foi estendido para 15 segundos.
+
+Closes #142
+```
+
+### Alteração que Quebra Compatibilidade (Breaking Change)
+Se a alteração quebrar a compatibilidade com versões anteriores, adicione uma exclamação `!` após o tipo e inclua a nota no rodapé:
+```text
+feat(api)!: remove suporte para a versão 1 da rota de usuários
+
+BREAKING CHANGE: A rota /api/v1/users foi desativada permanentemente. Use /api/v2/users.
+```
